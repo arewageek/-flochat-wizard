@@ -1,9 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FloatingSocialButton } from './floating-chat-button'
-import { Palette, Settings, Eye, Code, Download, Plus, Trash2, Sparkles } from 'lucide-react'
+import { 
+    Palette, 
+    Settings, 
+    Eye, 
+    Code, 
+    Download, 
+    Plus, 
+    Trash2, 
+    Sparkles, 
+    Layout, 
+    MousePointer2,
+    Copy,
+    Check,
+    Type,
+    Share2,
+    MessageCircle,
+    Zap,
+    Grid3X3,
+    Globe,
+    Maximize2,
+    MoveDown,
+    Pipette,
+    Moon,
+    Sun,
+    ExternalLink,
+    RefreshCw,
+    Smartphone,
+    Monitor as MonitorIcon,
+    ArrowUpRight
+} from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 
 interface SocialLink {
@@ -15,7 +44,8 @@ interface SocialLink {
 interface WizardConfig {
     size: 'sm' | 'md' | 'lg' | 'xl'
     position: 'bottom-right' | 'bottom-left'
-    color: 'accent' | 'success' | 'warning' | 'error' | 'info' | 'purple' | 'pink' | 'orange' | 'teal' | 'custom'
+    bottomOffset: number
+    color: string
     customColors: {
         primary: string
         secondary: string
@@ -26,44 +56,61 @@ interface WizardConfig {
     animationStyle: 'fan' | 'stack' | 'grid'
     toggleIcon: 'share' | 'message' | 'zap' | 'sparkles' | 'grid'
     brandColors: boolean
+    previewUrl: string
 }
 
-const tabs = [
-    { id: 'style', label: 'Style', icon: Palette },
-    { id: 'social', label: 'Social Links', icon: Settings },
-    { id: 'code', label: 'Code', icon: Code },
+const COLOR_PRESETS = [
+    { id: 'blue', label: 'Azure', from: '#1E40AF', to: '#3B82F6' },
+    { id: 'emerald', label: 'Forest', from: '#065F46', to: '#10B981' },
+    { id: 'rose', label: 'Savage', from: '#9F1239', to: '#F43F5E' },
+    { id: 'amber', label: 'Sunlight', from: '#92400E', to: '#F59E0B' },
+    { id: 'violet', label: 'Cosmos', from: '#5B21B6', to: '#8B5CF6' },
+    { id: 'indigo', label: 'Electric', from: '#3730A3', to: '#6366F1' },
+    { id: 'cyan', label: 'Ice', from: '#0E7490', to: '#06B6D4' },
+    { id: 'slate', label: 'Steel', from: '#1E293B', to: '#475569' },
+    { id: 'orange', label: 'Fire', from: '#9A3412', to: '#F97316' },
+    { id: 'pink', label: 'Neon', from: '#9D174D', to: '#EC4899' },
+    { id: 'teal', label: 'Lagoon', from: '#0D9488', to: '#2DD4BF' },
+    { id: 'lime', label: 'Acid', from: '#4D7C0F', to: '#A3E635' },
+    { id: 'gold', label: 'Midas', from: '#A16207', to: '#EAB308' },
+    { id: 'crimson', label: 'Blood', from: '#991B1B', to: '#EF4444' },
+    { id: 'fuchsia', label: 'Cyber', from: '#86198F', to: '#E879F9' },
 ]
 
-const platformOptions = [
-    { value: 'instagram', label: 'Instagram', color: 'from-pink-500 to-purple-600' },
-    { value: 'twitter', label: 'Twitter', color: 'from-blue-400 to-blue-600' },
-    { value: 'facebook', label: 'Facebook', color: 'from-blue-600 to-blue-800' },
-    { value: 'linkedin', label: 'LinkedIn', color: 'from-blue-500 to-blue-700' },
-    { value: 'youtube', label: 'YouTube', color: 'from-red-500 to-red-700' },
-    { value: 'github', label: 'GitHub', color: 'from-gray-700 to-gray-900' },
-    { value: 'whatsapp', label: 'WhatsApp', color: 'from-green-500 to-green-700' },
-    { value: 'email', label: 'Email', color: 'from-indigo-500 to-indigo-700' },
-    { value: 'phone', label: 'Phone', color: 'from-emerald-500 to-emerald-700' },
-]
-
-const toggleIconOptions = [
-    { value: 'share', label: 'Share', icon: '📤' },
-    { value: 'message', label: 'Message', icon: '💬' },
-    { value: 'zap', label: 'Zap', icon: '⚡' },
-    { value: 'sparkles', label: 'Sparkles', icon: '✨' },
-    { value: 'grid', label: 'Grid', icon: '⚏' },
+const PLATFORM_OPTIONS = [
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'twitter', label: 'Twitter' },
+    { value: 'facebook', label: 'Facebook' },
+    { value: 'linkedin', label: 'LinkedIn' },
+    { value: 'youtube', label: 'YouTube' },
+    { value: 'github', label: 'GitHub' },
+    { value: 'whatsapp', label: 'WhatsApp' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Phone' },
 ]
 
 export function ComponentWizard() {
-    const [activeTab, setActiveTab] = useState('style')
+    const [activeSidebar, setActiveSidebar] = useState<'style' | 'social' | 'code'>('style')
+    const [copied, setCopied] = useState(false)
+    const [mounted, setMounted] = useState(false)
+    const [urlInput, setUrlInput] = useState('')
+    const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
+    const [isEyeDropperSupported, setIsEyeDropperSupported] = useState(false)
+    
+    useEffect(() => {
+        setMounted(true)
+        setIsEyeDropperSupported('EyeDropper' in window)
+    }, [])
+
     const [config, setConfig] = useState<WizardConfig>({
         size: 'md',
         position: 'bottom-right',
-        color: 'accent',
+        bottomOffset: 32,
+        color: 'blue',
         customColors: {
-            primary: '#6366f1',
-            secondary: '#4f46e5',
-            hover: '#4338ca'
+            primary: '#1E40AF',
+            secondary: '#3B82F6',
+            hover: '#1D4ED8'
         },
         socialLinks: [
             { platform: 'instagram', url: 'https://instagram.com/yourhandle', label: 'Instagram' },
@@ -73,20 +120,27 @@ export function ComponentWizard() {
         showLabels: false,
         animationStyle: 'stack',
         toggleIcon: 'share',
-        brandColors: false
+        brandColors: false,
+        previewUrl: ''
     })
 
     const updateConfig = (key: keyof WizardConfig, value: any) => {
         setConfig(prev => ({ ...prev, [key]: value }))
     }
 
-    const updateCustomColor = (colorKey: 'primary' | 'secondary' | 'hover', value: string) => {
+    const updateSocialLink = (index: number, field: keyof SocialLink, value: string) => {
         setConfig(prev => ({
             ...prev,
-            customColors: {
-                ...prev.customColors,
-                [colorKey]: value
-            }
+            socialLinks: prev.socialLinks.map((link, i) =>
+                i === index ? { ...link, [field]: value } : link
+            )
+        }))
+    }
+
+    const removeSocialLink = (index: number) => {
+        setConfig(prev => ({
+            ...prev,
+            socialLinks: prev.socialLinks.filter((_, i) => i !== index)
         }))
     }
 
@@ -102,20 +156,32 @@ export function ComponentWizard() {
         }))
     }
 
-    const removeSocialLink = (index: number) => {
-        setConfig(prev => ({
-            ...prev,
-            socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-        }))
+    const copyCode = () => {
+        navigator.clipboard.writeText(generateCode())
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
-    const updateSocialLink = (index: number, field: keyof SocialLink, value: string) => {
-        setConfig(prev => ({
-            ...prev,
-            socialLinks: prev.socialLinks.map((link, i) =>
-                i === index ? { ...link, [field]: value } : link
-            )
-        }))
+    const handleUrlSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        let url = urlInput.trim()
+        if (url && !url.startsWith('http')) {
+            url = 'https://' + url
+        }
+        updateConfig('previewUrl', url)
+    }
+
+    const pickColor = async () => {
+        if (!isEyeDropperSupported) return
+        try {
+            // @ts-ignore
+            const eyeDropper = new EyeDropper()
+            const result = await eyeDropper.open()
+            updateConfig('color', 'custom')
+            updateConfig('customColors', { ...config.customColors, primary: result.sRGBHex })
+        } catch (e) {
+            console.error('Color picker failed', e)
+        }
     }
 
     const generateCode = () => {
@@ -130,596 +196,536 @@ export function ComponentWizard() {
     hover: '${config.customColors.hover}'
   }}` : ''
 
-        const sizeCode = typeof config.size === 'number' ? config.size : `"${config.size}"`
+        return `import { FloatingSocialButton } from './components/floating-social-button'
 
-        return `<FloatingSocialButton
-  size={${sizeCode}}
-  position="${config.position}"
-  color="${config.color}"${customColorsCode}
-  socialLinks={[
-${socialLinksCode}
-  ]}
-  showLabels={${config.showLabels}}
-  animationStyle="${config.animationStyle}"
-  toggleIcon="${config.toggleIcon}"
-  brandColors={${config.brandColors}}
-/>`
+export default function MyPage() {
+  return (
+    <FloatingSocialButton
+      size="${config.size}"
+      position="${config.position}"
+      bottomOffset={${config.bottomOffset}}
+      color="${config.color}"${customColorsCode}
+      socialLinks={[
+    ${socialLinksCode}
+      ]}
+      showLabels={${config.showLabels}}
+      animationStyle="${config.animationStyle}"
+      toggleIcon="${config.toggleIcon}"
+      brandColors={${config.brandColors}}
+    />
+  )
+}`
     }
 
-    return (
-        <div className="min-h-screen bg-background relative overflow-hidden">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-accent/20 to-purple-500/20 rounded-full blur-3xl animate-morph"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-info/20 to-teal-500/20 rounded-full blur-3xl animate-morph" style={{ animationDelay: '2s' }}></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-accent/10 to-info/10 rounded-full blur-3xl animate-pulse"></div>
-            </div>
+    if (!mounted) return null
 
-            {/* Header with glassmorphism */}
-            <div className="relative z-10 backdrop-blur-xl bg-surface/80 border-b border-border/50 shadow-lg">
-                <div className="max-w-7xl mx-auto px-6 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-6">
-                            <div className="relative">
-                                <div className="w-14 h-14 bg-gradient-to-br from-accent via-accent-light to-accent-dark rounded-2xl flex items-center justify-center shadow-lg animate-float">
-                                    <Palette className="w-7 h-7 text-white" />
-                                </div>
-                                <div className="absolute -inset-1 bg-gradient-to-br from-accent to-accent-dark rounded-2xl blur opacity-30 animate-pulse"></div>
-                            </div>
-                            <div>
-                                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground-secondary bg-clip-text text-transparent">
-                                    Two Tap
-                                </h1>
-                                <p className="text-sm md:text-base text-foreground-secondary mt-1">Create stunning floating social buttons with advanced customization</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-2 md:space-x-4">
-                            <ThemeToggle />
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="flex items-center space-x-2 md:space-x-3 bg-gradient-to-r from-accent to-accent-dark hover:from-accent-dark hover:to-accent text-white px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl glass-button magnetic-hover"
-                            >
-                                <Download className="w-4 h-4 md:w-5 md:h-5" />
-                                <span className="font-medium text-sm md:text-base hidden sm:inline">Export Code</span>
-                                <span className="font-medium text-sm md:text-base sm:hidden">Export</span>
-                            </motion.button>
-                        </div>
+    return (
+        <>
+            {/* Topbar */}
+            <header className="app-topbar px-6">
+                <div className="brand">
+                    <div className="brand-mark shadow-lg shadow-accent/40 ring-4 ring-accent/10">
+                        <Share2 size={16} color="white" />
+                    </div>
+                    <div>
+                        <div className="brand-name">Two Tap</div>
+                        <div className="brand-tag">Premium Builder</div>
                     </div>
                 </div>
-            </div>
+                
+                <form onSubmit={handleUrlSubmit} className="hidden lg:flex items-center gap-3 bg-bg-subtle border-2 border-border px-4 py-2 rounded-full w-[500px] focus-within:border-accent transition-all shadow-md group">
+                    <Globe size={16} className="text-text-muted group-focus-within:text-accent transition-colors" />
+                    <input 
+                        className="bg-transparent border-none text-[14px] font-bold outline-none flex-1 py-0.5 placeholder:text-text-muted/40 placeholder:font-normal"
+                        placeholder="Inspect another site: Enter URL..."
+                        value={urlInput}
+                        onChange={(e) => setUrlInput(e.target.value)}
+                    />
+                    <button type="submit" className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-white bg-accent hover:bg-accent-hover px-5 py-2 rounded-full transition-all shadow-lg shadow-accent/20 active:scale-95">
+                        Load <ArrowUpRight size={14} />
+                    </button>
+                </form>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8 xl:gap-12">
-                    {/* Configuration Panel */}
-                    <div className="xl:col-span-2">
-                        <div className="glass-card backdrop-blur-xl bg-surface/90 border border-border/50 rounded-2xl overflow-hidden shadow-2xl">
-                            {/* Enhanced Tabs */}
-                            <div className="flex border-b border-border/30 bg-gradient-to-r from-surface-elevated/50 to-surface/50 overflow-x-auto">
-                                {tabs.map((tab, index) => (
-                                    <motion.button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center space-x-2 md:space-x-3 px-4 md:px-8 py-4 md:py-6 transition-all duration-300 relative flex-1 min-w-0 whitespace-nowrap ${activeTab === tab.id
-                                            ? 'text-accent bg-gradient-to-br from-accent/10 to-accent/5'
-                                            : 'text-foreground-secondary hover:text-foreground hover:bg-surface-elevated/50'
-                                            }`}
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        <div className={`p-1.5 md:p-2 rounded-lg transition-all duration-300 ${activeTab === tab.id
-                                            ? 'bg-accent/20 text-accent'
-                                            : 'bg-surface-elevated text-foreground-muted'
-                                            }`}>
-                                            <tab.icon className="w-4 h-4 md:w-5 md:h-5" />
+                <div className="flex items-center gap-4">
+                    <ThemeToggle />
+                    <div className="w-px h-6 bg-border mx-2" />
+                    <button onClick={copyCode} className="btn btn-primary btn-sm px-5 h-9 rounded-full shadow-lg shadow-accent/20 hover:shadow-accent/40">
+                        {copied ? <Check size={14} /> : <Download size={14} />}
+                        <span>{copied ? 'Copied' : 'Export'}</span>
+                    </button>
+                </div>
+            </header>
+
+            {/* Main Sidebar */}
+            <aside className="app-sidebar py-8">
+                <div className="sidebar-section-label px-6">Workshop</div>
+                <nav className="mt-2">
+                    <div 
+                        className={`sidebar-item mx-3 rounded-xl mb-1 ${activeSidebar === 'style' ? 'active' : ''}`}
+                        onClick={() => setActiveSidebar('style')}
+                    >
+                        <Palette className="sidebar-icon" />
+                        <span>Visual Identity</span>
+                    </div>
+                    <div 
+                        className={`sidebar-item mx-3 rounded-xl mb-1 ${activeSidebar === 'social' ? 'active' : ''}`}
+                        onClick={() => setActiveSidebar('social')}
+                    >
+                        <Settings className="sidebar-icon" />
+                        <span>Platforms</span>
+                    </div>
+                    <div 
+                        className={`sidebar-item mx-3 rounded-xl mb-1 ${activeSidebar === 'code' ? 'active' : ''}`}
+                        onClick={() => setActiveSidebar('code')}
+                    >
+                        <Code className="sidebar-icon" />
+                        <span>Integration</span>
+                    </div>
+                </nav>
+            </aside>
+
+            {/* Canvas / Preview - FORCED DARK MODE */}
+            <main className="app-canvas relative bg-[#09090b] dark">
+                <div className="absolute inset-0 canvas-bg pointer-events-none opacity-20" />
+                
+                {/* Device Controls */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#18181b] border border-[#27272a] p-1.5 rounded-full shadow-2xl z-20">
+                    <button 
+                        onClick={() => setPreviewDevice('desktop')}
+                        className={`w-12 h-9 flex items-center justify-center rounded-full transition-all ${previewDevice === 'desktop' ? 'bg-accent text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        <MonitorIcon size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setPreviewDevice('mobile')}
+                        className={`w-12 h-9 flex items-center justify-center rounded-full transition-all ${previewDevice === 'mobile' ? 'bg-accent text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        <Smartphone size={18} />
+                    </button>
+                </div>
+
+                <div className="absolute top-6 right-8 flex items-center gap-3 z-20">
+                    <div className="canvas-label static transform-none px-4 py-2 bg-[#18181b] border-[#27272a] text-slate-400 font-black tracking-widest text-[9px]">DARK MODE PREVIEW</div>
+                </div>
+                
+                {/* Preview Frame */}
+                <motion.div 
+                    layout
+                    className={`
+                        ${previewDevice === 'desktop' ? 'w-[92%] h-[84%]' : 'w-[375px] h-[720px] ml-4'}
+                        border-[6px] border-[#27272a] rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col bg-[#09090b] transition-all duration-700 ease-in-out
+                    `}
+                >
+                    {/* Browser Chrome */}
+                    <div className={`h-14 border-b border-[#27272a] px-8 flex items-center justify-between bg-[#18181b]`}>
+                        <div className="flex gap-2.5">
+                            {previewDevice === 'desktop' && (
+                                <>
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#FF5F56]/40" />
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#FFBD2E]/40" />
+                                    <div className="w-3.5 h-3.5 rounded-full bg-[#27C93F]/40" />
+                                </>
+                            )}
+                            {previewDevice === 'mobile' && (
+                                <div className="w-20 h-5 bg-black/40 rounded-full flex items-center justify-center">
+                                    <div className="w-8 h-1 bg-white/10 rounded-full" />
+                                </div>
+                            )}
+                        </div>
+                        <div className={`
+                            px-6 py-2 rounded-full text-[12px] font-bold w-[55%] flex items-center gap-3 truncate shadow-inner bg-[#09090b] text-slate-400 border border-[#27272a]
+                        `}>
+                            <Globe size={12} className="text-accent" />
+                            {config.previewUrl || 'preview-environment.local'}
+                        </div>
+                        <div className="flex gap-5">
+                            <RefreshCw size={14} className="text-slate-500 hover:text-accent transition-colors" />
+                            <ExternalLink size={14} className="text-slate-500 hover:text-accent transition-colors" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 relative overflow-hidden">
+                        {/* THE BUTTON - interactive, absolute to the inner frame */}
+                        <div className="absolute inset-0 z-50 pointer-events-none">
+                            <div className="relative w-full h-full pointer-events-auto">
+                                <FloatingSocialButton {...config} isAbsolute={true} />
+                            </div>
+                        </div>
+
+                        <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800">
+                            {config.previewUrl ? (
+                                <iframe 
+                                    src={config.previewUrl} 
+                                    className="w-full h-full border-none bg-white min-h-[1000px]"
+                                    title="Site Preview"
+                                    scrolling="yes"
+                                />
+                            ) : (
+                                <div className={`p-16 animate-in h-full flex flex-col items-center justify-center text-center bg-[#09090b]`}>
+                                    <div className="w-full max-w-2xl space-y-12">
+                                        <div className="space-y-4">
+                                            <div className="w-48 h-10 rounded-full bg-slate-800/20 mx-auto border border-slate-800/40" />
+                                            <div className="w-full h-1 text-slate-800/10 bg-slate-800/10 rounded-full" />
                                         </div>
-                                        <span className="font-semibold text-sm md:text-base">{tab.label}</span>
-                                        {activeTab === tab.id && (
-                                            <motion.div
-                                                layoutId="activeTab"
-                                                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-accent to-accent-light rounded-t-full"
-                                                initial={false}
-                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="p-8 rounded-[2rem] bg-[#18181b] border border-[#27272a] text-left border-dashed">
+                                                <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6">
+                                                    <Layout size={24} />
+                                                </div>
+                                                <h4 className="text-slate-300 font-bold mb-2">Interface Simulation</h4>
+                                                <p className="text-sm text-slate-500 leading-relaxed">Use the device controls at the top to toggle between phone and computer views.</p>
+                                            </div>
+                                            <div className="p-8 rounded-[2rem] bg-[#18181b] border border-[#27272a] text-left border-dashed">
+                                                <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent mb-6">
+                                                    <MousePointer2 size={24} />
+                                                </div>
+                                                <h4 className="text-slate-300 font-bold mb-2">Live Interaction</h4>
+                                                <p className="text-sm text-slate-500 leading-relaxed">Click the button below to test animations, links, and branding in real-time.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-12">
+                                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-slate-900 border border-slate-800">
+                                                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Awaiting URL Injection</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Scroll Indicator simulation */}
+                                    <motion.div 
+                                        animate={{ y: [0, 10, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-slate-800"
+                                    >
+                                        <MoveDown size={20} />
+                                    </motion.div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
+            </main>
+
+            {/* Settings Panel (Right) */}
+            <section className="app-panel p-8">
+                <AnimatePresence mode="wait">
+                    {activeSidebar === 'style' && (
+                        <motion.div 
+                            key="style"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="flex flex-col h-full"
+                        >
+                            <div className="panel-section border-none p-0 mb-8">
+                                <h3 className="panel-section-title flex items-center gap-2">
+                                    <Palette size={14} className="text-accent" />
+                                    Visual Overrides
+                                </h3>
+                                
+                                <div className="field">
+                                    <label className="field-label">Scale Factor</label>
+                                    <div className="segment-group p-1.5 rounded-2xl">
+                                        {(['sm', 'md', 'lg', 'xl'] as const).map(s => (
+                                            <button 
+                                                key={s}
+                                                onClick={() => updateConfig('size', s)}
+                                                className={`segment-btn rounded-xl py-2 font-bold ${config.size === s ? 'active' : ''}`}
+                                            >
+                                                {s.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="field mt-8">
+                                    <label className="field-label flex justify-between items-center mb-3">
+                                        <span>Monotone Gradients</span>
+                                        <div className="flex items-center gap-2">
+                                            {isEyeDropperSupported && (
+                                                <button 
+                                                    onClick={pickColor}
+                                                    className="p-1.5 rounded-md hover:bg-accent/10 text-accent transition-colors"
+                                                    title="Pick color from screen"
+                                                >
+                                                    <Pipette size={14} />
+                                                </button>
+                                            )}
+                                            <span className="text-accent bg-accent/10 px-2 py-0.5 rounded text-[10px] font-black uppercase">{config.color}</span>
+                                        </div>
+                                    </label>
+                                    <div className="grid grid-cols-5 gap-3">
+                                        {COLOR_PRESETS.map(p => (
+                                            <div 
+                                                key={p.id}
+                                                onClick={() => updateConfig('color', p.id)}
+                                                className={`swatch w-10 h-10 shadow-sm border-white ${config.color === p.id ? 'active' : ''}`}
+                                                style={{ 
+                                                    background: `linear-gradient(135deg, ${p.from}, ${p.to})`,
+                                                }}
+                                                title={p.label}
                                             />
-                                        )}
-                                        {activeTab === tab.id && (
-                                            <motion.div
-                                                className="absolute inset-0 bg-gradient-to-r from-accent/5 to-transparent rounded-lg"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ duration: 0.3 }}
-                                            />
-                                        )}
-                                    </motion.button>
+                                        ))}
+                                        <div 
+                                            onClick={() => updateConfig('color', 'custom')}
+                                            className={`swatch w-10 h-10 flex items-center justify-center bg-white border-slate-200 ${config.color === 'custom' ? 'active shadow-lg' : ''}`}
+                                            style={{ background: config.color === 'custom' ? config.customColors.primary : undefined }}
+                                        >
+                                            <Palette size={16} className={config.color === 'custom' ? 'text-white' : 'text-slate-400'} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {config.color === 'custom' && (
+                                    <motion.div 
+                                        initial={{ height: 0, opacity: 0, scale: 0.95 }}
+                                        animate={{ height: 'auto', opacity: 1, scale: 1 }}
+                                        className="mt-6 p-4 bg-bg-subtle/50 rounded-2xl border border-accent/20 border-dashed"
+                                    >
+                                        <label className="field-label mb-3">Custom Solid Signature</label>
+                                        <div className="flex gap-4 items-center">
+                                            <div className="relative group">
+                                                <input 
+                                                    type="color" 
+                                                    value={config.customColors.primary}
+                                                    onChange={(e) => updateConfig('customColors', { ...config.customColors, primary: e.target.value })}
+                                                    className="w-12 h-12 rounded-xl bg-transparent border-none cursor-pointer overflow-hidden p-0"
+                                                />
+                                                <div className="absolute inset-0 pointer-events-none rounded-xl border border-white/20 shadow-inner" />
+                                            </div>
+                                            <div className="flex-1 space-y-2">
+                                                <input 
+                                                    type="text"
+                                                    value={config.customColors.primary.toUpperCase()}
+                                                    onChange={(e) => updateConfig('customColors', { ...config.customColors, primary: e.target.value })}
+                                                    className="w-full bg-bg-raised border border-border rounded-xl px-4 py-2 text-sm font-mono focus:border-accent outline-none"
+                                                />
+                                                <div className="text-[10px] text-text-muted font-medium uppercase tracking-tighter">Enter HEX or pick manually</div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+
+                            <div className="panel-section border-none p-0 mt-8">
+                                <h3 className="panel-section-title">Motion & Interaction</h3>
+                                <div className="field">
+                                    <label className="field-label">Context Icon</label>
+                                    <div className="option-grid option-grid-5 gap-3">
+                                        {[
+                                            { id: 'share', icon: Share2 },
+                                            { id: 'message', icon: MessageCircle },
+                                            { id: 'zap', icon: Zap },
+                                            { id: 'sparkles', icon: Sparkles },
+                                            { id: 'grid', icon: Grid3X3 },
+                                        ].map(item => (
+                                            <button 
+                                                key={item.id}
+                                                onClick={() => updateConfig('toggleIcon', item.id)}
+                                                className={`option-btn w-full h-12 rounded-xl border-2 transition-all ${config.toggleIcon === item.id ? 'active border-accent' : 'hover:scale-105 active:scale-95'}`}
+                                            >
+                                                <item.icon size={18} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="field mt-6">
+                                    <label className="field-label">Behavior</label>
+                                    <select 
+                                        className="input h-11 rounded-xl bg-bg-subtle border-none shadow-sm font-semibold"
+                                        value={config.animationStyle}
+                                        onChange={(e) => updateConfig('animationStyle', e.target.value)}
+                                    >
+                                        <option value="fan">Circular Expansion</option>
+                                        <option value="stack">Vertical Stack</option>
+                                        <option value="grid">Matrix Grid</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="panel-section border-none p-0 mt-8">
+                                <h3 className="panel-section-title">Deployment Layout</h3>
+                                <div className="field">
+                                    <div className="flex items-center justify-between p-4 bg-bg-subtle rounded-2xl mb-4">
+                                        <span className="field-label mb-0">Anchoring</span>
+                                        <div className="segment-group w-36 rounded-xl">
+                                            <button 
+                                                onClick={() => updateConfig('position', 'bottom-left')}
+                                                className={`segment-btn ${config.position === 'bottom-left' ? 'active' : ''}`}
+                                            >
+                                                Left
+                                            </button>
+                                            <button 
+                                                onClick={() => updateConfig('position', 'bottom-right')}
+                                                className={`segment-btn ${config.position === 'bottom-right' ? 'active' : ''}`}
+                                            >
+                                                Right
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="field mt-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="field-label font-bold text-accent">Floor Offset</label>
+                                        <span className="text-accent bg-accent/10 px-3 py-1 rounded-full font-mono text-[11px] font-black">{config.bottomOffset}px</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 px-2">
+                                        <MoveDown size={16} className="text-accent" />
+                                        <input 
+                                            type="range"
+                                            min="0"
+                                            max="200"
+                                            step="4"
+                                            value={config.bottomOffset}
+                                            onChange={(e) => updateConfig('bottomOffset', parseInt(e.target.value))}
+                                            className="flex-1 accent-accent h-2 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {activeSidebar === 'social' && (
+                        <motion.div 
+                            key="social"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="flex flex-col h-full"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="panel-section-title mb-0">Target Destinations</h3>
+                                <button onClick={addSocialLink} className="p-2 rounded-full bg-accent text-white shadow-lg shadow-accent/20 hover:scale-110 active:scale-95 transition-all">
+                                    <Plus size={18} />
+                                </button>
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                                {config.socialLinks.map((link, idx) => (
+                                    <div key={idx} className="link-card border-none bg-bg-subtle/80 backdrop-blur-sm rounded-2xl p-5 shadow-sm transition-all hover:bg-bg-subtle hover:shadow-md animate-in" style={{ animationDelay: `${idx * 50}ms` }}>
+                                        <div className="link-card-header mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 text-accent group">
+                                                    {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label.charAt(0)}
+                                                </div>
+                                                <select 
+                                                    className="bg-transparent border-none text-primary font-bold text-[13px] py-0 outline-none cursor-pointer hover:text-accent transition-colors"
+                                                    value={link.platform}
+                                                    onChange={(e) => updateSocialLink(idx, 'platform', e.target.value as any)}
+                                                >
+                                                    {PLATFORM_OPTIONS.map(opt => (
+                                                        <option key={opt.value} value={opt.value} className="bg-bg text-text-primary">{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <button 
+                                                onClick={() => removeSocialLink(idx)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 text-text-muted hover:text-error transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="relative group">
+                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/40">
+                                                    <ExternalLink size={12} />
+                                                </div>
+                                                <input 
+                                                    className="w-full bg-bg-raised border border-border rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none focus:border-accent transition-all" 
+                                                    placeholder="Paste destination URL..."
+                                                    value={link.url}
+                                                    onChange={(e) => updateSocialLink(idx, 'url', e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 
-                            {/* Enhanced Tab Content */}
-                            <div className="p-4 md:p-6 lg:p-8">
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={activeTab}
-                                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                                    >
-                                        {activeTab === 'style' && (
-                                            <div className="space-y-6">
-                                                {/* Flexible Size Control */}
-                                                <div className="space-y-4">
-                                                    <label className="block text-lg font-semibold text-foreground mb-4">Button Size</label>
-
-                                                    {/* Preset Sizes */}
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                        {(['sm', 'md', 'lg', 'xl'] as const).map((sizeOption) => (
-                                                            <motion.button
-                                                                key={sizeOption}
-                                                                onClick={() => updateConfig('size', sizeOption)}
-                                                                className={`px-6 py-4 rounded-xl border-2 transition-all duration-300 text-sm font-medium relative overflow-hidden ${config.size === sizeOption
-                                                                    ? 'border-accent bg-gradient-to-br from-accent/10 to-accent/5 text-accent shadow-lg'
-                                                                    : 'border-border hover:border-accent/50 hover:bg-surface-elevated text-foreground-secondary hover:text-foreground'
-                                                                    }`}
-                                                                whileHover={{ scale: 1.05 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                            >
-                                                                <div className="flex flex-col items-center space-y-2">
-                                                                    <div className={`rounded-full bg-current ${sizeOption === 'sm' ? 'w-3 h-3' :
-                                                                        sizeOption === 'md' ? 'w-4 h-4' :
-                                                                            sizeOption === 'lg' ? 'w-5 h-5' : 'w-6 h-6'
-                                                                        }`}></div>
-                                                                    <span>{sizeOption.toUpperCase()}</span>
-                                                                </div>
-                                                                {config.size === sizeOption && (
-                                                                    <motion.div
-                                                                        className="absolute inset-0 bg-gradient-to-r from-accent/10 to-transparent rounded-xl"
-                                                                        initial={{ opacity: 0 }}
-                                                                        animate={{ opacity: 1 }}
-                                                                        transition={{ duration: 0.3 }}
-                                                                    />
-                                                                )}
-                                                            </motion.button>
-                                                        ))}
-                                                    </div>
-
-
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-foreground mb-3">Position</label>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        {(['bottom-right', 'bottom-left'] as const).map((position) => (
-                                                            <button
-                                                                key={position}
-                                                                onClick={() => updateConfig('position', position)}
-                                                                className={`px-4 py-2 rounded-lg border transition-colors text-sm ${config.position === position
-                                                                    ? 'border-accent bg-accent-muted text-accent'
-                                                                    : 'border-border hover:border-accent hover:bg-muted'
-                                                                    }`}
-                                                            >
-                                                                {position.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-foreground mb-3">Animation Style</label>
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        {(['fan', 'stack', 'grid'] as const).map((style) => (
-                                                            <button
-                                                                key={style}
-                                                                onClick={() => updateConfig('animationStyle', style)}
-                                                                className={`px-4 py-2 rounded-lg border transition-colors text-sm ${config.animationStyle === style
-                                                                    ? 'border-accent bg-accent-muted text-accent'
-                                                                    : 'border-border hover:border-accent hover:bg-muted'
-                                                                    }`}
-                                                            >
-                                                                {style.charAt(0).toUpperCase() + style.slice(1)}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-foreground mb-3">Toggle Icon</label>
-                                                    <div className="grid grid-cols-4 gap-3">
-                                                        {toggleIconOptions.map((icon) => (
-                                                            <button
-                                                                key={icon.value}
-                                                                onClick={() => updateConfig('toggleIcon', icon.value)}
-                                                                className={`px-3 py-2 rounded-lg border transition-colors text-sm flex items-center justify-center ${config.toggleIcon === icon.value
-                                                                    ? 'border-accent bg-accent-muted text-accent'
-                                                                    : 'border-border hover:border-accent hover:bg-muted'
-                                                                    }`}
-                                                            >
-                                                                <span className="mr-2">{icon.icon}</span>
-                                                                {icon.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Enhanced Color Theme */}
-                                                <div className="space-y-6">
-                                                    <label className="block text-lg font-semibold text-foreground mb-4">Color Theme</label>
-                                                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
-                                                        {(['accent', 'success', 'warning', 'error', 'info', 'purple', 'pink', 'orange', 'teal', 'custom'] as const).map((color) => (
-                                                            <motion.button
-                                                                key={color}
-                                                                onClick={() => updateConfig('color', color)}
-                                                                className={`relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl border-2 md:border-3 transition-all duration-300 ${config.color === color
-                                                                    ? 'border-foreground scale-110 shadow-xl'
-                                                                    : 'border-border hover:scale-105 hover:shadow-lg'
-                                                                    } ${color === 'accent' ? 'bg-gradient-to-br from-accent to-accent-dark' :
-                                                                        color === 'success' ? 'bg-gradient-to-br from-success to-success-dark' :
-                                                                            color === 'warning' ? 'bg-gradient-to-br from-warning to-warning-dark' :
-                                                                                color === 'error' ? 'bg-gradient-to-br from-error to-error-dark' :
-                                                                                    color === 'info' ? 'bg-gradient-to-br from-info to-info-dark' :
-                                                                                        color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-700' :
-                                                                                            color === 'pink' ? 'bg-gradient-to-br from-pink-500 to-pink-700' :
-                                                                                                color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-700' :
-                                                                                                    color === 'teal' ? 'bg-gradient-to-br from-teal-500 to-teal-700' :
-                                                                                                        'bg-gradient-to-br from-purple-500 to-pink-500'
-                                                                    }`}
-                                                                whileHover={{ scale: 1.1 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                            >
-                                                                {config.color === color && (
-                                                                    <motion.div
-                                                                        className="absolute inset-0 rounded-2xl bg-white/20"
-                                                                        initial={{ opacity: 0 }}
-                                                                        animate={{ opacity: 1 }}
-                                                                        transition={{ duration: 0.3 }}
-                                                                    />
-                                                                )}
-                                                                <span className="absolute -bottom-5 md:-bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-medium text-foreground-secondary capitalize">
-                                                                    {color}
-                                                                </span>
-                                                            </motion.button>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* Brand Colors Toggle */}
-                                                    <div className="p-6 bg-gradient-to-br from-surface-elevated/50 to-surface/50 rounded-xl border border-border/30">
-                                                        <div className="flex items-center justify-between">
-                                                            <div>
-                                                                <h4 className="font-semibold text-foreground">Brand Colors</h4>
-                                                                <p className="text-sm text-foreground-secondary mt-1">Use authentic social media brand colors</p>
-                                                            </div>
-                                                            <motion.button
-                                                                onClick={() => updateConfig('brandColors', !config.brandColors)}
-                                                                className={`relative w-14 h-8 rounded-full transition-all duration-300 ${config.brandColors
-                                                                    ? 'bg-gradient-to-r from-accent to-accent-dark'
-                                                                    : 'bg-surface-elevated border border-border'
-                                                                    }`}
-                                                                whileTap={{ scale: 0.95 }}
-                                                            >
-                                                                <motion.div
-                                                                    className={`absolute top-1 w-6 h-6 rounded-full transition-all duration-300 ${config.brandColors
-                                                                        ? 'left-7 bg-white shadow-lg'
-                                                                        : 'left-1 bg-foreground-muted'
-                                                                        }`}
-                                                                    animate={{ x: config.brandColors ? 0 : 0 }}
-                                                                />
-                                                            </motion.button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {config.color === 'custom' && (
-                                                    <div className="bg-muted rounded-lg p-4 space-y-4">
-                                                        <h4 className="font-medium text-foreground">Custom Colors</h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-foreground-secondary mb-2">Primary Color</label>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <input
-                                                                        type="color"
-                                                                        value={config.customColors.primary}
-                                                                        onChange={(e) => updateCustomColor('primary', e.target.value)}
-                                                                        className="w-10 h-10 rounded border border-border cursor-pointer"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        value={config.customColors.primary}
-                                                                        onChange={(e) => updateCustomColor('primary', e.target.value)}
-                                                                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-foreground-secondary mb-2">Secondary Color</label>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <input
-                                                                        type="color"
-                                                                        value={config.customColors.secondary}
-                                                                        onChange={(e) => updateCustomColor('secondary', e.target.value)}
-                                                                        className="w-10 h-10 rounded border border-border cursor-pointer"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        value={config.customColors.secondary}
-                                                                        onChange={(e) => updateCustomColor('secondary', e.target.value)}
-                                                                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-xs font-medium text-foreground-secondary mb-2">Hover Color</label>
-                                                                <div className="flex items-center space-x-2">
-                                                                    <input
-                                                                        type="color"
-                                                                        value={config.customColors.hover}
-                                                                        onChange={(e) => updateCustomColor('hover', e.target.value)}
-                                                                        className="w-10 h-10 rounded border border-border cursor-pointer"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        value={config.customColors.hover}
-                                                                        onChange={(e) => updateCustomColor('hover', e.target.value)}
-                                                                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {activeTab === 'social' && (
-                                            <div className="space-y-6">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-lg font-semibold text-foreground">Social Media Links</h3>
-                                                    <motion.button
-                                                        onClick={addSocialLink}
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        className="flex items-center space-x-2 bg-accent hover:bg-accent-dark text-white px-3 py-2 rounded-lg transition-colors text-sm"
-                                                    >
-                                                        <Plus className="w-4 h-4" />
-                                                        <span>Add Link</span>
-                                                    </motion.button>
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    {config.socialLinks.map((link, index) => (
-                                                        <motion.div
-                                                            key={index}
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            className="bg-muted rounded-lg p-4 space-y-3"
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <h4 className="font-medium text-foreground">Link {index + 1}</h4>
-                                                                <button
-                                                                    onClick={() => removeSocialLink(index)}
-                                                                    className="text-error hover:text-error/80 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                                <div>
-                                                                    <label className="block text-xs font-medium text-foreground-secondary mb-1">Platform</label>
-                                                                    <select
-                                                                        value={link.platform}
-                                                                        onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                                                                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                    >
-                                                                        {platformOptions.map(option => (
-                                                                            <option key={option.value} value={option.value}>
-                                                                                {option.label}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                </div>
-
-                                                                <div>
-                                                                    <label className="block text-xs font-medium text-foreground-secondary mb-1">URL</label>
-                                                                    <input
-                                                                        type="url"
-                                                                        value={link.url}
-                                                                        onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                                                                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                        placeholder="https://..."
-                                                                    />
-                                                                </div>
-
-                                                                <div>
-                                                                    <label className="block text-xs font-medium text-foreground-secondary mb-1">Label</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={link.label}
-                                                                        onChange={(e) => updateSocialLink(index, 'label', e.target.value)}
-                                                                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                                                                        placeholder="Display name"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-foreground">Show Labels</label>
-                                                        <p className="text-xs text-foreground-secondary mt-1">Display platform names next to icons</p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => updateConfig('showLabels', !config.showLabels)}
-                                                        className={`relative w-12 h-6 rounded-full transition-colors ${config.showLabels ? 'bg-accent' : 'bg-secondary'}`}
-                                                    >
-                                                        <motion.div
-                                                            animate={{ x: config.showLabels ? 24 : 2 }}
-                                                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow"
-                                                        />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-
-
-                                        {activeTab === 'code' && (
-                                            <div className="space-y-6">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="w-8 h-8 bg-gradient-to-br from-success to-success-dark rounded-lg flex items-center justify-center">
-                                                            <Code className="w-4 h-4 text-white" />
-                                                        </div>
-                                                        <h3 className="text-xl font-bold text-foreground">Generated Code</h3>
-                                                    </div>
-                                                    <motion.button
-                                                        onClick={() => navigator.clipboard.writeText(generateCode())}
-                                                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-success to-success-dark hover:from-success-dark hover:to-success text-white text-sm rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl"
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                        </svg>
-                                                        <span>Copy Code</span>
-                                                    </motion.button>
-                                                </div>
-
-                                                <div className="relative">
-                                                    <pre className="bg-gradient-to-br from-surface-elevated/50 to-muted/50 border border-border/30 rounded-xl p-6 overflow-x-auto text-sm shadow-inner">
-                                                        <code className="text-foreground font-mono leading-relaxed">{generateCode()}</code>
-                                                    </pre>
-                                                    <div className="absolute top-4 right-4 flex space-x-2">
-                                                        <div className="w-3 h-3 bg-error rounded-full"></div>
-                                                        <div className="w-3 h-3 bg-warning rounded-full"></div>
-                                                        <div className="w-3 h-3 bg-success rounded-full"></div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="p-6 bg-gradient-to-br from-info/10 to-info/5 rounded-xl border border-info/20">
-                                                    <h4 className="font-semibold text-foreground mb-3 flex items-center">
-                                                        <div className="w-5 h-5 bg-info rounded-full flex items-center justify-center mr-2">
-                                                            <span className="text-white text-xs">i</span>
-                                                        </div>
-                                                        Installation Instructions
-                                                    </h4>
-                                                    <div className="space-y-3 text-sm text-foreground-secondary">
-                                                        <div>
-                                                            <p className="font-medium text-foreground mb-1">1. Install dependencies:</p>
-                                                            <code className="bg-surface-elevated px-3 py-1 rounded text-xs font-mono">
-                                                                npm install framer-motion lucide-react
-                                                            </code>
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-foreground mb-1">2. Copy the component code above</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-foreground mb-1">3. Import and use in your React component:</p>
-                                                            <code className="bg-surface-elevated px-3 py-1 rounded text-xs font-mono">
-                                                                import {`{FloatingSocialButton}`} from './components/floating-social-button'
-                                                            </code>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                </AnimatePresence>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Configuration Summary Panel */}
-                    <div className="xl:col-span-1">
-                        <div className="glass-card backdrop-blur-xl bg-surface/90 border border-border/50 rounded-2xl p-4 md:p-6 lg:p-8 sticky top-8 shadow-2xl">
-                            <div className="flex items-center space-x-3 mb-6">
-                                <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-info to-info-dark rounded-lg flex items-center justify-center">
-                                    <Settings className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                                </div>
-                                <h3 className="text-lg md:text-xl font-bold text-foreground">Configuration</h3>
-                            </div>
-
-                            {/* Configuration Display */}
-                            <div className="space-y-4">
-                                <div className="p-3 md:p-4 bg-gradient-to-br from-surface-elevated/30 to-surface/30 rounded-xl border border-border/30">
-                                    <h4 className="font-semibold text-foreground mb-3 text-sm">Button Settings</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Size:</span>
-                                            <span className="text-accent font-medium font-mono">{config.size.toUpperCase()}</span>
+                            <div className="mt-auto pt-10">
+                                <div className="space-y-4 bg-bg-subtle/30 p-4 rounded-3xl border border-dashed border-border">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-text-primary">Helper Labels</span>
+                                            <span className="text-[10px] text-text-muted opacity-60">Display platform names</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Position:</span>
-                                            <span className="text-accent font-medium capitalize">{config.position.replace('-', ' ')}</span>
+                                        <button 
+                                            className={`toggle ${config.showLabels ? 'on' : ''}`}
+                                            onClick={() => updateConfig('showLabels', !config.showLabels)}
+                                        >
+                                            <div className="toggle-thumb" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-text-primary">Native Branding</span>
+                                            <span className="text-[10px] text-text-muted opacity-60">Inherit brand colors</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Theme:</span>
-                                            <span className="text-accent font-medium capitalize">{config.color}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Icon:</span>
-                                            <span className="text-accent font-medium capitalize">{config.toggleIcon}</span>
-                                        </div>
+                                        <button 
+                                            className={`toggle ${config.brandColors ? 'on' : ''}`}
+                                            onClick={() => updateConfig('brandColors', !config.brandColors)}
+                                        >
+                                            <div className="toggle-thumb" />
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="p-3 md:p-4 bg-gradient-to-br from-surface-elevated/30 to-surface/30 rounded-xl border border-border/30">
-                                    <h4 className="font-semibold text-foreground mb-3 text-sm">Behavior</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Animation:</span>
-                                            <span className="text-accent font-medium capitalize">{config.animationStyle}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Labels:</span>
-                                            <span className="text-accent font-medium">{config.showLabels ? 'Enabled' : 'Disabled'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-foreground-secondary">Brand Colors:</span>
-                                            <span className="text-accent font-medium">{config.brandColors ? 'Enabled' : 'Disabled'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-3 md:p-4 bg-gradient-to-br from-surface-elevated/30 to-surface/30 rounded-xl border border-border/30">
-                                    <h4 className="font-semibold text-foreground mb-3 text-sm">Social Links</h4>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-foreground-secondary">Total Links:</span>
-                                            <span className="text-accent font-medium">{config.socialLinks.length}</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-1.5 mt-2">
-                                            {config.socialLinks.map((link, index) => (
-                                                <span key={index} className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-lg capitalize">
-                                                    {link.platform}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Quick Actions */}
-                                <div className="pt-4 border-t border-border/30">
-                                    <motion.button
-                                        onClick={() => navigator.clipboard.writeText(generateCode())}
-                                        className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-success to-success-dark hover:from-success-dark hover:to-success text-white text-sm rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                        <span>Copy Component Code</span>
-                                    </motion.button>
-                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        </motion.div>
+                    )}
 
-            {/* Live Demo Button */}
-            <FloatingSocialButton {...config} />
-        </div>
+                    {activeSidebar === 'code' && (
+                        <motion.div 
+                            key="code"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="flex flex-col h-full"
+                        >
+                            <h3 className="panel-section-title mb-6">Production Artifacts</h3>
+                            
+                            <div className="code-block bg-bg-overlay border-none rounded-[2rem] p-8 shadow-2xl relative group">
+                                <div className="code-block-header border-white/5 mb-6">
+                                    <div className="flex gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#FF5F56]/30" />
+                                        <div className="w-3 h-3 rounded-full bg-[#FFBD2E]/30" />
+                                        <div className="w-3 h-3 rounded-full bg-[#27C93F]/30" />
+                                    </div>
+                                    <button onClick={copyCode} className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                                        {copied ? <Check size={16} className="text-success" /> : <Copy size={16} />}
+                                    </button>
+                                </div>
+                                <pre className="text-white selection:bg-accent/30 overflow-x-auto">
+                                    <code className="text-[11px] leading-[1.8] font-mono opacity-90">{generateCode()}</code>
+                                </pre>
+                            </div>
+
+                            <div className="mt-10 p-6 bg-accent rounded-[2rem] text-white shadow-xl shadow-accent/30">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner">
+                                        <Sparkles size={24} />
+                                    </div>
+                                    <h4 className="font-bold text-lg leading-tight">Optimization Complete</h4>
+                                </div>
+                                <p className="text-sm opacity-80 leading-relaxed mb-6">
+                                    Your contact widget has been compiled with zero dependencies and high-conversion motion patterns.
+                                </p>
+                                <button className="w-full py-4 rounded-2xl bg-white text-accent font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:scale-[1.02] active:scale-95 transition-all">
+                                    Download Bundle
+                                </button>
+                            </div>
+
+                            <p className="text-center mt-8 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] opacity-40">
+                                Powered by Two Tap Core
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </section>
+        </>
     )
 }

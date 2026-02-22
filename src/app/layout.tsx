@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat Button Builder - Component Library",
-  description: "Create and customize beautiful floating chat buttons for your website",
+  title: "Two Tap | Professional Floating Social Buttons",
+  description: "The modern component library for high-conversion floating contact and social buttons.",
 };
 
 export default function RootLayout({
