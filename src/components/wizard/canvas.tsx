@@ -1,9 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Monitor as MonitorIcon, Smartphone, Globe, RefreshCw, ExternalLink, MoveDown, Layout, MousePointer2 } from 'lucide-react'
-import { FloatingSocialButton } from '../floating-chat-button'
+import { Monitor as MonitorIcon, Smartphone, Globe, MoveDown } from 'lucide-react'
 import { WizardConfig } from './types'
+import { Flochat } from '@flochat/react'
 
 interface CanvasProps {
     config: WizardConfig
@@ -70,7 +70,7 @@ export function Canvas({ config, previewDevice, setPreviewDevice }: CanvasProps)
                     {/* THE BUTTON - interactive, absolute to the inner frame */}
                     <div className="absolute inset-0 z-50 pointer-events-none">
                         <div className="relative w-full h-full pointer-events-auto">
-                            <FloatingSocialButton {...config} isAbsolute={true} />
+                            <Flochat {...config} isAbsolute={true} />
                         </div>
                     </div>
 

@@ -23,7 +23,7 @@ export function SocialPanel({ config, updateConfig, updateSocialLink, removeSoci
         >
             <div className="flex items-center justify-between mb-8" style={{padding: 12}}>
                 <h3 className="panel-section-title mb-0">Target Destinations</h3>
-                <button onClick={addSocialLink} className="p-2 rounded-full bg-accent text-white shadow-lg shadow-accent/20 hover:scale-110 active:scale-95 transition-all">
+                <button onClick={addSocialLink} className="p-2 rounded-full bg-accent text-white shadow-lg shadow-accent/20 hover:scale-110 active:scale-95 transition-all" style={{padding: 3}}>
                     <Plus size={18} />
                 </button>
             </div>

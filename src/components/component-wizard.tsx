@@ -34,9 +34,8 @@ export function ComponentWizard() {
             hover: '#1D4ED8'
         },
         socialLinks: [
-            { platform: 'instagram', url: 'https://instagram.com/yourhandle', label: 'Instagram' },
-            { platform: 'twitter', url: 'https://twitter.com/yourhandle', label: 'Twitter' },
-            { platform: 'linkedin', url: 'https://linkedin.com/in/yourprofile', label: 'LinkedIn' }
+            { platform: 'github', url: 'https://github.com/arewageek', label: 'GitHub' },
+            { platform: 'twitter', url: 'https://twitter.com/arewaofweb3', label: 'Twitter' },
         ],
         showLabels: false,
         animationStyle: 'stack',
