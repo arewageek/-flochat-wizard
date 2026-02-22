@@ -3,8 +3,9 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "twotap",
+      "name": "flochat-wizard",
       "dependencies": {
+        "@flochat/react": "^1.0.0",
         "framer-motion": "^12.23.12",
         "lucide-react": "^0.539.0",
         "next": "15.4.6",
@@ -26,6 +27,8 @@
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.8.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg=="],
+
+    "@flochat/react": ["@flochat/react@1.0.0", "", { "dependencies": { "framer-motion": "^12.23.12", "lucide-react": "^0.539.0" }, "peerDependencies": { "react": "^18.0.0", "react-dom": "^18.0.0" } }, "sha512-i5raRidvdKa1zKAw9XOjw9xkIjAyRCdDugElRlkMOMBXyJL8rvw96UxnsNhZ/9xluBJn5bhgQakFUBDZ9Tc55w=="],
 
     "@img/colour": ["@img/colour@1.0.0", "", {}, "sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw=="],
 
